@@ -9,7 +9,8 @@ export default function BulkCreateView({
 }) {
   const [step, setStep] = useState(1); // 1 = select count, 2 = enter details
   const [quantity, setQuantity] = useState(3);
-  const [cardsData, setCardsData] = useState([]); // Array of { name: '', image: null, isUploading: false }
+  const [startingIndex, setStartingIndex] = useState(1);
+  const [cardsData, setCardsData] = useState([]); // Array of { name: '', image: null, number: 1, isUploading: false }
 
   const fileInputRefs = useRef([]);
 
@@ -20,10 +21,11 @@ export default function BulkCreateView({
       return;
     }
 
-    // Initialize cardsData array
-    const initialList = Array.from({ length: quantity }, () => ({
+    // Initialize cardsData array with startingIndex incremented sequentially
+    const initialList = Array.from({ length: quantity }, (_, idx) => ({
       name: '',
       image: null,
+      number: startingIndex + idx,
       isUploading: false
     }));
     setCardsData(initialList);
@@ -98,22 +100,39 @@ export default function BulkCreateView({
       </header>
 
       {step === 1 ? (
-        <form onSubmit={handleQuantitySubmit} className="editor-section" style={{ maxWidth: '500px', margin: '40px auto 0', padding: '36px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+        <form onSubmit={handleQuantitySubmit} className="editor-section" style={{ maxWidth: '500px', margin: '40px auto 0', padding: '36px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '24px' }}>
           <HelpCircle size={48} style={{ color: 'var(--color-gold)', strokeWidth: 1.2 }} />
           <div>
-            <h2 style={{ fontFamily: 'var(--font-display)', margin: '0 0 8px', fontSize: '1.8rem' }}>How many cards?</h2>
-            <p style={{ color: 'var(--color-ink-muted)', fontSize: '0.92rem', margin: 0 }}>Select the number of tarot cards you want to add in bulk.</p>
+            <h2 style={{ fontFamily: 'var(--font-display)', margin: '0 0 8px', fontSize: '1.8rem' }}>Bulk Create Setup</h2>
+            <p style={{ color: 'var(--color-ink-muted)', fontSize: '0.92rem', margin: 0 }}>Configure card count and starting sequential index number.</p>
           </div>
 
-          <div className="field" style={{ width: '120px' }}>
-            <input 
-              type="number" 
-              min={1} 
-              max={30}
-              value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-              style={{ textAlign: 'center', fontSize: '1.25rem', fontWeight: 600, padding: '10px' }}
-            />
+          <div style={{ display: 'flex', gap: '20px', width: '100%', justifyContent: 'center', alignItems: 'flex-start' }}>
+            <div className="field" style={{ width: '140px' }}>
+              <label className="field-label" style={{ textAlign: 'center', minHeight: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                How Many Cards
+              </label>
+              <input 
+                type="number" 
+                min={1} 
+                max={30}
+                value={quantity}
+                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                style={{ textAlign: 'center', fontSize: '1.1rem', fontWeight: 600, padding: '10px' }}
+              />
+            </div>
+            <div className="field" style={{ width: '140px' }}>
+              <label className="field-label" style={{ textAlign: 'center', minHeight: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                Starting Index
+              </label>
+              <input 
+                type="number" 
+                min={0}
+                value={startingIndex}
+                onChange={(e) => setStartingIndex(parseInt(e.target.value) || 0)}
+                style={{ textAlign: 'center', fontSize: '1.1rem', fontWeight: 600, padding: '10px' }}
+              />
+            </div>
           </div>
 
           <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '8px' }}>
@@ -134,7 +153,7 @@ export default function BulkCreateView({
             
             <div className="bulk-grid">
               {cardsData.map((cardItem, idx) => (
-                <div key={idx} className="bulk-item-box">
+                <div key={idx} className="bulk-item-box" style={{ gap: '12px' }}>
                   
                   {/* Compact Uploader */}
                   <div 
@@ -185,6 +204,24 @@ export default function BulkCreateView({
                       onChange={(e) => handleCardNameChange(idx, e.target.value)}
                       placeholder="e.g. The Moon"
                       style={{ padding: '8px 10px', fontSize: '0.88rem' }}
+                    />
+                  </div>
+
+                  {/* Editable sequential Card Number field */}
+                  <div className="field" style={{ width: '80px' }}>
+                    <label className="field-label" style={{ fontSize: '0.72rem' }}>Number</label>
+                    <input 
+                      type="number"
+                      value={cardItem.number}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value) || 0;
+                        setCardsData(prev => {
+                          const copy = [...prev];
+                          copy[idx].number = val;
+                          return copy;
+                        });
+                      }}
+                      style={{ padding: '8px 8px', fontSize: '0.88rem', textAlign: 'center' }}
                     />
                   </div>
 

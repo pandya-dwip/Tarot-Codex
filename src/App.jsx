@@ -6,7 +6,7 @@ import Toast from './components/Toast';
 import ConfirmModal from './components/ConfirmModal';
 import PdfPreviewModal from './components/PdfPreviewModal';
 import BulkUpdateModal from './components/BulkUpdateModal';
-import { buildPageDOM, waitForLayoutAndImages, getPdfOptions } from './utils/pdfGenerator';
+import { generatePdfBlob } from './utils/pdfGenerator';
 
 const migrateCard = (card) => {
   if (card.description_en !== undefined) return card;
@@ -85,6 +85,10 @@ export default function App() {
     fetchCards();
   }, []);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [currentView]);
+
   const handleUploadImage = async (file) => {
     const formData = new FormData();
     formData.append('image', file);
@@ -143,7 +147,11 @@ export default function App() {
             description_gu: '',
           };
           FIELD_NAMES.forEach(name => {
-            if (name !== 'cardName') payload[name] = '';
+            if (name === 'number') {
+              payload[name] = String(item.number !== undefined ? item.number : '');
+            } else if (name !== 'cardName') {
+              payload[name] = '';
+            }
           });
           return fetch('/api/cards', {
             method: 'POST',
@@ -271,20 +279,14 @@ export default function App() {
     setPdfOverlayOpen(true);
     
     try {
-      const pdfDOM = buildPageDOM(cards, activeLanguage);
-      document.body.appendChild(pdfDOM);
-      
-      await waitForLayoutAndImages(pdfDOM);
-      
-      const options = getPdfOptions(activeLanguage);
-      await window.html2pdf().set(options).from(pdfDOM).save();
+      const pdf = await generatePdfBlob(cards, activeLanguage);
+      const filename = activeLanguage === 'gu' ? 'tarot-codex-gujarati.pdf' : 'tarot-codex-english.pdf';
+      pdf.save(filename);
       showToast('PDF generated.');
     } catch (err) {
       console.error('PDF generation error:', err);
       showToast('Something went wrong generating the PDF.', 'error');
     } finally {
-      const existing = document.querySelector('.pdf-root');
-      if (existing) existing.remove();
       setPdfOverlayOpen(false);
       setIsPdfGenerating(false);
     }
@@ -296,13 +298,8 @@ export default function App() {
     setPdfOverlayOpen(true);
 
     try {
-      const pdfDOM = buildPageDOM(cards, activeLanguage);
-      document.body.appendChild(pdfDOM);
-      
-      await waitForLayoutAndImages(pdfDOM);
-
-      const options = getPdfOptions(activeLanguage);
-      const pdfBlob = await window.html2pdf().set(options).from(pdfDOM).toPdf().output('blob');
+      const pdf = await generatePdfBlob(cards, activeLanguage);
+      const pdfBlob = pdf.output('blob');
 
       if (activePdfBlobUrl) {
         URL.revokeObjectURL(activePdfBlobUrl);
@@ -315,8 +312,6 @@ export default function App() {
       console.error('PDF preview error:', err);
       showToast('Something went wrong preparing the preview.', 'error');
     } finally {
-      const existing = document.querySelector('.pdf-root');
-      if (existing) existing.remove();
       setPdfOverlayOpen(false);
       setIsPdfGenerating(false);
     }

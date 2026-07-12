@@ -28,6 +28,7 @@ export const buildPageDOM = (cards, lang = 'en') => {
   const root = document.createElement('div');
   root.className = 'pdf-root';
   root.style.display = 'block';
+  root.style.position = 'relative';
 
   cards.forEach((card, index) => {
     const page = document.createElement('div');
@@ -97,17 +98,47 @@ export const waitForLayoutAndImages = (element) => {
   return Promise.all([...imageReady, paint]);
 };
 
-export const getPdfOptions = (lang = 'en') => ({
-  margin: 0,
-  filename: lang === 'gu' ? 'tarot-codex-gujarati.pdf' : 'tarot-codex-english.pdf',
-  image: { type: 'jpeg', quality: 0.98 },
-  html2canvas: {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: '#ffffff',
-    scrollX: 0,
-    scrollY: 0
-  },
-  jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-  pagebreak: { mode: ['css', 'legacy'] }
-});
+export const generatePdfBlob = async (cards, lang = 'en') => {
+  const pdfDOM = buildPageDOM(cards, lang);
+  document.body.appendChild(pdfDOM);
+
+  try {
+    await waitForLayoutAndImages(pdfDOM);
+
+    const jsPDFConstructor = window.jspdf?.jsPDF || window.jsPDF;
+    if (!jsPDFConstructor) {
+      throw new Error('jsPDF library was not loaded on page.');
+    }
+
+    const pdf = new jsPDFConstructor({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pages = Array.from(pdfDOM.querySelectorAll('.pdf-page'));
+    
+    for (let idx = 0; idx < pages.length; idx++) {
+      const pageEl = pages[idx];
+      const canvas = await window.html2canvas(pageEl, {
+        scale: 2, // High resolution is safe now
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        scrollX: 0,
+        scrollY: 0
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      
+      if (idx > 0) {
+        pdf.addPage();
+      }
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+    }
+
+    return pdf;
+  } finally {
+    if (pdfDOM) pdfDOM.remove();
+  }
+};

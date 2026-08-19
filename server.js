@@ -29,8 +29,10 @@ app.use(cors());
 app.use(express.json({ limit: '20mb' })); // Support larger base64 payloads if importing legacy items
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static uploads
+// Serve static uploads and cards
 app.use('/uploads', express.static(UPLOADS_DIR));
+app.use('/Cards', express.static(path.join(__dirname, 'Cards')));
+app.use('/Cards', express.static(path.join(__dirname, 'public', 'Cards')));
 
 // Setup Multer for image file uploads
 const imageStorage = multer.diskStorage({

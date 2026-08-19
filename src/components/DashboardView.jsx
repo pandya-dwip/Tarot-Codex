@@ -157,7 +157,7 @@ export default function DashboardView({
             className="btn btn-secondary" 
             id="backupBtn"
             disabled={cards.length === 0}
-            title="Download database backup file as JSON"
+            title="Save database backup to local backup folder"
           >
             <Database size={16} className="btn-icon" /> Backup
           </button>

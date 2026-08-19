@@ -274,9 +274,19 @@ export default function App() {
     }
   };
 
-  const handleBackup = () => {
-    window.open('/api/backup', '_blank');
-    showToast('Backup download initiated.');
+  const handleBackup = async () => {
+    try {
+      const res = await fetch('/api/backup', { method: 'POST' });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Backup failed');
+      }
+      const data = await res.json();
+      showToast(`Backup saved to "backup" folder (${data.filename})`);
+    } catch (err) {
+      console.error('Backup error:', err);
+      showToast(err.message || 'Failed to save backup file.', 'error');
+    }
   };
 
   const handleRestore = async (file) => {

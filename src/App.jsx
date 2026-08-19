@@ -276,13 +276,24 @@ export default function App() {
 
   const handleBackup = async () => {
     try {
-      const res = await fetch('/api/backup', { method: 'POST' });
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Backup failed');
+      let res = await fetch('/api/backup', { method: 'POST' });
+
+      // Fallback to GET if POST route isn't recognized by old server process
+      if (res.status === 404 || res.status === 405) {
+        res = await fetch('/api/backup', { method: 'GET' });
       }
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error('Server returned non-JSON response. Please restart "npm run dev" in your terminal to apply the updated server.js.');
+      }
+
       const data = await res.json();
-      showToast(`Backup saved to "backup" folder (${data.filename})`);
+      if (!res.ok) {
+        throw new Error(data.error || 'Backup failed');
+      }
+
+      showToast(`Backup saved to "backup" folder (${data.filename || 'tarot-codex-backup.json'})`);
     } catch (err) {
       console.error('Backup error:', err);
       showToast(err.message || 'Failed to save backup file.', 'error');

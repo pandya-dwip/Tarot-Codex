@@ -104,7 +104,8 @@ export default function App() {
     return data.imageUrl;
   };
 
-  const handleSaveCard = async (cardData) => {
+  const handleSaveCard = async (cardData, options = {}) => {
+    const navigateToNext = options?.navigateToNext || false;
     const cardId = cardData.id || 'card-' + Date.now() + '-' + Math.random().toString(16).slice(2);
     const payload = { ...cardData, id: cardId };
 
@@ -118,10 +119,36 @@ export default function App() {
       });
       if (!res.ok) throw new Error('Save failed');
       
-      showToast('Card saved.');
-      fetchCards();
-      setCurrentView('dashboard');
-      setEditingCardId(null);
+      // Fetch latest list of cards
+      const freshRes = await fetch('/api/cards');
+      const freshData = await freshRes.json();
+      const migrated = freshData.map(migrateCard);
+      setCards(migrated);
+
+      if (navigateToNext) {
+        const currentIndex = migrated.findIndex(c => c.id === cardId);
+        if (currentIndex !== -1 && currentIndex + 1 < migrated.length) {
+          const nextCard = migrated[currentIndex + 1];
+          setEditingCardId(nextCard.id);
+          setCurrentView('editor');
+          window.scrollTo(0, 0);
+          showToast(`Card saved. Switched to next card: "${nextCard.cardName || 'Untitled Card'}".`);
+        } else if (migrated.length > 0) {
+          const firstCard = migrated[0];
+          setEditingCardId(firstCard.id);
+          setCurrentView('editor');
+          window.scrollTo(0, 0);
+          showToast(`Card saved. Reached end of cards, looped to "${firstCard.cardName || 'First Card'}".`);
+        } else {
+          setCurrentView('dashboard');
+          setEditingCardId(null);
+          showToast('Card saved.');
+        }
+      } else {
+        showToast('Card saved.');
+        setCurrentView('dashboard');
+        setEditingCardId(null);
+      }
     } catch (err) {
       console.error(err);
       showToast('Failed to save card.', 'error');

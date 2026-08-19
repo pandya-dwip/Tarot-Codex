@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FIELD_NAMES, FIELD_LABELS } from '../utils/pdfGenerator';
-import { ArrowLeft, Trash2, Save, UploadCloud, X } from 'lucide-react';
+import { ArrowLeft, Trash2, Save, UploadCloud, X, ArrowRight } from 'lucide-react';
 
 const FIELD_PLACEHOLDERS = {
   cardName: 'e.g. The Fool',
@@ -115,15 +115,15 @@ export default function EditorView({
     if (file) handleImageFile(file);
   };
 
-  const handleSave = (e) => {
-    e.preventDefault();
+  const handleSave = (e, options = {}) => {
+    if (e) e.preventDefault();
     onSave({
       id: card?.id,
       image,
       description_en: descriptionEn,
       description_gu: descriptionGu,
       ...formData
-    });
+    }, options);
   };
 
   const handleBackClick = () => {
@@ -156,7 +156,7 @@ export default function EditorView({
         </div>
       </header>
 
-      <form onSubmit={handleSave} id="cardForm" noValidate>
+      <form onSubmit={(e) => handleSave(e, { navigateToNext: false })} id="cardForm" noValidate>
         {/* SECTION 1: image + fields */}
         <div className="editor-section section-top">
           
@@ -264,7 +264,16 @@ export default function EditorView({
         </div>
 
         {/* SECTION 3: actions */}
-        <div className="editor-section section-actions" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+        <div className="editor-section section-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+          <button 
+            type="button" 
+            onClick={(e) => handleSave(e, { navigateToNext: true })}
+            className="btn btn-secondary"
+            style={{ minWidth: '190px' }}
+          >
+            <Save size={16} className="btn-icon" /> Save &amp; Next Card <ArrowRight size={16} className="btn-icon" />
+          </button>
+
           <button 
             type="submit" 
             className="btn btn-primary"
